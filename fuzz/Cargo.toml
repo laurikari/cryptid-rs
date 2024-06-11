@@ -1,0 +1,22 @@
+[package]
+name = "cryptid-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arrayref = "0.3.7"
+libfuzzer-sys = "0.4"
+
+[dependencies.cryptid]
+path = ".."
+
+[[bin]]
+name = "decode"
+path = "fuzz_targets/decode.rs"
+test = false
+doc = false
+bench = false
