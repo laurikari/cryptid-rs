@@ -11,7 +11,7 @@ cargo-fuzz = true
 arrayref = "0.3.7"
 libfuzzer-sys = "0.4"
 
-[dependencies.cryptid]
+[dependencies.cryptid-rs]
 path = ".."
 
 [[bin]]
