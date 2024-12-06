@@ -1,6 +1,6 @@
 [package]
 name = "cryptid-rs"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Ville Laurikari <ville@laurikari.net>"]
 edition = "2021"
 description = "A library to encrypt and decrypt integer IDs to URL safe strings"
