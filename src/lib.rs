@@ -47,7 +47,7 @@
 //! }
 //!
 //! cryptid_rs::Config::set_global(cryptid_rs::Config::new(b"your-secure-key"));
-//! let obj = Example {id: ExampleId::new(12345)};
+//! let obj = Example {id: ExampleId::from(12345)};
 //! let obj_str = serde_json::to_string(&obj).unwrap();
 //! assert_eq!(obj_str, "{\"id\":\"example_VgwPy6rwatl\"}");
 //! ```
