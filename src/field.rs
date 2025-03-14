@@ -105,6 +105,14 @@ impl<T: TypeMarker> Field<T> {
         let codec = get_or_create_codec(codec_name);
         codec.encode_uuid(self.id)
     }
+
+    /// Decrypts a `Uuid` value back into a `Field<T>`.
+    pub fn decode_uuid(uuid: Uuid) -> Result<Self, crate::codec::Error> {
+        let codec_name = T::name();
+        let codec = get_or_create_codec(codec_name);
+        let id = codec.decode_uuid(uuid)?;
+        Ok(Field::from(id))
+    }
 }
 
 impl<T: TypeMarker> Serialize for Field<T> {
