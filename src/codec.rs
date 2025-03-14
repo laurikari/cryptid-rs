@@ -165,12 +165,41 @@ impl Codec {
         u128::from_le_bytes(num_array)
     }
 
-    /// Encrypts `num` into an UUID.
+    /// Encrypts `num` into an UUID.  This is useful in situations where using an UUID is
+    /// forced by some interface.  Otherwise you should use the default type safe strings.
     pub fn encode_uuid(&self, num: u64) -> Uuid {
         // 8 bytes for hmac and 8 bytes for payload gets us a nice random 128 bit value.
         let vec = encrypt_number(&self.ff1, &self.hmac, 8, 8, num);
         let num = u128::from_le_bytes(vec.try_into().expect("Should have exactly 16 bytes"));
         Uuid::from_u128_le(num)
+    }
+
+    /// Decodes a previously encrypted UUID back into its original numeric value.
+    ///
+    /// # Arguments
+    ///
+    /// * `uuid` - The UUID to be decoded.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` which is `Ok` containing the decoded 64-bit unsigned integer if successful,
+    /// or an `Error` if decoding fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use cryptid_rs::{Codec, Config};
+    /// use uuid::Uuid;
+    ///
+    /// let codec = Codec::new("test", &Config::new(b"Test key here"));
+    /// let uuid = codec.encode_uuid(0);
+    /// let decoded = codec.decode_uuid(uuid).unwrap();
+    ///
+    /// assert_eq!(decoded, 0);
+    /// ```
+    pub fn decode_uuid(&self, uuid: Uuid) -> Result<u64, Error> {
+        let bytes = uuid.to_u128_le().to_le_bytes();
+        decrypt_number(&self.ff1, &self.hmac, 8, 8, &bytes)
     }
 
     /// Decodes a previously encoded string back into its original numeric value.
@@ -226,7 +255,13 @@ impl Codec {
             length = MAX_BUFFER;
         }
 
-        decrypt_number(self, &num_array[..length])
+        decrypt_number(
+            &self.ff1,
+            &self.hmac,
+            self.hmac_length,
+            self.zero_pad_length,
+            &num_array[..length],
+        )
     }
 }
 
@@ -274,24 +309,28 @@ fn encrypt_number(
     result
 }
 
-fn decrypt_number(codec: &Codec, encrypted_data: &[u8]) -> Result<u64, Error> {
-    if encrypted_data.len() < codec.hmac_length + codec.zero_pad_length {
+fn decrypt_number(
+    ff1: &FF1<Aes256>,
+    hmac: &HmacSha256,
+    hmac_length: usize,
+    zero_pad_length: usize,
+    encrypted_data: &[u8],
+) -> Result<u64, Error> {
+    if encrypted_data.len() < hmac_length + zero_pad_length {
         return Err(Error::InvalidDataLength);
     }
-    let (encrypted_num, received_mac) =
-        encrypted_data.split_at(encrypted_data.len() - codec.hmac_length);
+    let (encrypted_num, received_mac) = encrypted_data.split_at(encrypted_data.len() - hmac_length);
 
     // Verify MAC
-    let mut hmac: HmacSha256 = codec.hmac.clone();
-    hmac.update(&encrypted_num);
-    let truncated_mac = &hmac.finalize().into_bytes()[..codec.hmac_length];
+    let mut hmac_clone: HmacSha256 = hmac.clone();
+    hmac_clone.update(&encrypted_num);
+    let truncated_mac = &hmac_clone.finalize().into_bytes()[..hmac_length];
     if truncated_mac != received_mac {
         return Err(Error::IncorrectMAC);
     }
 
     // Decrypt the number
-    let decrypted_num = codec
-        .ff1
+    let decrypted_num = ff1
         .decrypt(&[], &BinaryNumeralString::from_bytes_le(encrypted_num))
         .map_err(|_| Error::DecryptionFailed)?;
 
@@ -334,7 +373,27 @@ mod tests {
         ];
 
         for &(input, expected) in &test_cases {
-            assert_eq!(codec.encode_uuid(input), Uuid::parse_str(expected).unwrap());
+            let uuid = Uuid::parse_str(expected).unwrap();
+            assert_eq!(codec.encode_uuid(input), uuid);
+
+            // Test roundtrip
+            let decoded = codec.decode_uuid(uuid).unwrap();
+            assert_eq!(decoded, input, "Failed to decode UUID for input: {}", input);
+        }
+    }
+
+    #[test]
+    fn test_uuid_roundtrip() {
+        let codec = Codec::new("test", &Config::new(b"Test key here"));
+        let mut rng = rand::thread_rng();
+        let range = Uniform::new(0u64, u64::MAX);
+
+        for _ in 0..1_000 {
+            let number = rng.sample(range);
+            let uuid = codec.encode_uuid(number);
+            let decoded = codec.decode_uuid(uuid).expect("Decoding failed");
+
+            assert_eq!(decoded, number, "Failed at number: {}", number);
         }
     }
 
