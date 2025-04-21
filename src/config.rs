@@ -5,9 +5,9 @@ static GLOBAL_CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None
 
 /// Configuring the cryptid library.
 #[derive(Clone)]
-pub struct Config<'a> {
+pub struct Config {
     pub(crate) hmac_length: u8,
-    pub(crate) key: &'a [u8],
+    pub(crate) key: Vec<u8>,
     pub(crate) zero_pad_length: u8,
 }
 
@@ -18,7 +18,7 @@ pub enum ConfigError {
     InvalidZeroPadLength,
 }
 
-impl<'a> Config<'a> {
+impl Config {
     /// Creates a new configuration with the given master `key` and other settings in
     /// default values.
     /// - `mac_length` defaults to 4, which is large enough to make guessing impractical
@@ -27,10 +27,10 @@ impl<'a> Config<'a> {
     /// - `zero_pad_length` defaults to 4, which is large enough for most applications
     ///   to never see encoded strings increase in size, while still keeping the strings
     ///   relatively short.
-    pub fn new(key: &'a [u8]) -> Self {
+    pub fn new(key: &[u8]) -> Self {
         Config {
             hmac_length: 4,
-            key,
+            key: key.to_vec(),
             zero_pad_length: 4,
         }
     }
@@ -59,13 +59,13 @@ impl<'a> Config<'a> {
 
     /// Sets the global configuration. This should be called before the `Field` type methods
     /// are called.
-    pub fn set_global(config: Config<'static>) {
+    pub fn set_global(config: Config) {
         let mut global_config = GLOBAL_CONFIG.lock().unwrap();
         *global_config = Some(config);
     }
 
     /// Accesses the global configuration, if set.
-    pub fn global() -> Option<Config<'static>> {
+    pub fn global() -> Option<Config> {
         GLOBAL_CONFIG.lock().unwrap().clone()
     }
 }

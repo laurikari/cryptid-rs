@@ -101,7 +101,7 @@ impl Codec {
     /// let codec = Codec::new("example", &Config::new(b"your-secure-key"));
     /// ```
     pub fn new(name: &str, config: &Config) -> Codec {
-        let hkdf = Hkdf::<Sha256>::new(None, config.key);
+        let hkdf = Hkdf::<Sha256>::new(None, &config.key);
         let mut ff1_key = [0u8; 32];
         let mut hmac_key = [0u8; 32];
         hkdf.expand(format!("{}/ff1", name).as_bytes(), &mut ff1_key)
