@@ -84,7 +84,9 @@ impl<T: TypeMarker> From<Field<T>> for u64 {
 
 impl<T: TypeMarker> fmt::Display for Field<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Field {{ id: {}, marker: {} }}", self.id, T::name())
+        let codec_name = T::name();
+        let codec = get_or_create_codec(codec_name);
+        write!(f, "{}", codec.encode(self.id))
     }
 }
 
@@ -127,7 +129,7 @@ impl<T: TypeMarker> Serialize for Field<T> {
 }
 
 impl<'de, T: TypeMarker> Deserialize<'de> for Field<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Field<T>, D::Error>
     where
         D: Deserializer<'de>,
     {
