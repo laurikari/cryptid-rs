@@ -1,7 +1,13 @@
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 
+use crate::field::clear_codec_cache;
+
 static GLOBAL_CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
+
+thread_local! {
+    static THREAD_LOCAL_CONFIG: std::cell::RefCell<Option<Config>> = std::cell::RefCell::new(None);
+}
 
 /// Configuring the cryptid library.
 #[derive(Clone)]
@@ -64,7 +70,41 @@ impl Config {
         *global_config = Some(config);
     }
 
+    /// Sets the thread-local configuration. This takes precedence over the global configuration
+    /// for the current thread only.
+    pub fn set_thread_local(config: Config) {
+        THREAD_LOCAL_CONFIG.with(|tl_config| {
+            *tl_config.borrow_mut() = Some(config);
+        });
+        clear_codec_cache();
+    }
+
+    /// Clears the thread-local configuration for the current thread.
+    pub fn clear_thread_local() {
+        THREAD_LOCAL_CONFIG.with(|tl_config| {
+            *tl_config.borrow_mut() = None;
+        });
+        clear_codec_cache();
+    }
+
+    /// Accesses the effective configuration, checking thread-local first, then global.
+    /// Thread-local configuration takes precedence over global configuration.
+    pub fn effective() -> Option<Config> {
+        // Check thread-local first
+        let thread_local = THREAD_LOCAL_CONFIG.with(|tl_config| tl_config.borrow().clone());
+
+        if thread_local.is_some() {
+            thread_local
+        } else {
+            // Fall back to global
+            GLOBAL_CONFIG.lock().unwrap().clone()
+        }
+    }
+
     /// Accesses the global configuration, if set.
+    ///
+    /// **Note**: Consider using `Config::effective()` instead, which checks
+    /// thread-local configuration first.
     pub fn global() -> Option<Config> {
         GLOBAL_CONFIG.lock().unwrap().clone()
     }

@@ -26,13 +26,21 @@ thread_local! {
     static CODEC_CACHE: RefCell<HashMap<String, Arc<Codec>>> = RefCell::new(HashMap::new());
 }
 
+/// Clears the thread-local codec cache. This should be called when the thread-local
+/// configuration changes to ensure codecs use the new configuration.
+pub fn clear_codec_cache() {
+    CODEC_CACHE.with(|cache| {
+        cache.borrow_mut().clear();
+    });
+}
+
 fn get_or_create_codec(name: &str) -> Arc<Codec> {
     CODEC_CACHE.with(|cache| {
         let mut cache = cache.borrow_mut();
         if let Some(codec) = cache.get(name) {
             codec.clone()
         } else {
-            let codec = Arc::new(Codec::new(name, &Config::global().unwrap()));
+            let codec = Arc::new(Codec::new(name, &Config::effective().unwrap()));
             cache.insert(name.to_string(), codec.clone());
             codec
         }

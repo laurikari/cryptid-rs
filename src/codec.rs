@@ -504,4 +504,50 @@ mod tests {
             assert_eq!(decoded, number, "Failed at number: {}", number);
         }
     }
+
+    #[test]
+    fn test_thread_local_config_isolation() {
+        use crate::{Config, Field, TypeMarker};
+        use std::thread;
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct TestIdMarker;
+        impl TypeMarker for TestIdMarker {
+            fn name() -> &'static str {
+                "test"
+            }
+        }
+
+        type TestId = Field<TestIdMarker>;
+
+        // Set global config
+        Config::set_global(Config::new(b"global-key-16bytes"));
+
+        // Test that global config works
+        let id = TestId::from(123);
+        let global_encoded = id.to_string();
+
+        // Test thread-local config in separate thread
+        let handle = thread::spawn(|| {
+            Config::set_thread_local(Config::new(b"thread-key-16bytes"));
+
+            let id = TestId::from(123);
+            id.to_string()
+        });
+
+        let thread_result = handle.join().unwrap();
+
+        // Verify they're different (thread isolation works)
+        assert_ne!(
+            global_encoded, thread_result,
+            "Thread-local config should produce different encoding than global config"
+        );
+
+        // Main thread should still use global config
+        let main_again = TestId::from(123).to_string();
+        assert_eq!(
+            global_encoded, main_again,
+            "Main thread should still use global config"
+        );
+    }
 }
