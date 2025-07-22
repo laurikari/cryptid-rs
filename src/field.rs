@@ -127,6 +127,16 @@ impl<T: TypeMarker> Field<T> {
         }
     }
 
+    /// Decodes a `Field<T>` value from an encoded string.
+    ///
+    /// This method decrypts and decodes a cryptid string back into a `Field<T>`.
+    pub fn from_str(encoded: &str) -> Result<Self, crate::codec::Error> {
+        let codec_name = T::name();
+        let codec = get_or_create_codec(codec_name);
+        let id = codec.decode(encoded)?;
+        Ok(Field::from(id))
+    }
+
     /// Encrypts the ID into a `Uuid` value.
     pub fn encode_uuid(self) -> Uuid {
         let codec_name = T::name();
