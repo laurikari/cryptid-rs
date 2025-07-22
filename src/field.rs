@@ -93,6 +93,14 @@ pub struct Field<T: TypeMarker> {
     _marker: std::marker::PhantomData<T>,
 }
 
+// Implement Hash only when T implements Hash
+impl<T: TypeMarker + std::hash::Hash> std::hash::Hash for Field<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self._marker.hash(state);
+    }
+}
+
 impl<T: TypeMarker> From<Field<T>> for u64 {
     /// Returns the raw `u64` value.
     fn from(field: Field<T>) -> Self {
