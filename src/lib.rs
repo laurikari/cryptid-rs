@@ -75,3 +75,7 @@ mod field;
 pub use codec::{Codec, Error};
 pub use config::{Config, ConfigError};
 pub use field::{Field, TypeMarker};
+
+// Re-export derive macro when feature is enabled
+#[cfg(feature = "derive")]
+pub use cryptid_derive::CryptidField;

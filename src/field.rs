@@ -122,7 +122,7 @@ impl<T: TypeMarker> Field<T> {
     /// This method converts a `u64` into a `Field<T>`, effectively changing its type.
     pub fn from(id: u64) -> Self {
         Field {
-            id: id,
+            id,
             _marker: std::marker::PhantomData,
         }
     }
@@ -178,7 +178,7 @@ impl<'de, T: TypeMarker> Deserialize<'de> for Field<T> {
         let codec = get_or_create_codec(codec_name);
         let id = codec.decode(&text).map_err(|e| Error::custom(e))?;
         Ok(Field {
-            id: id,
+            id,
             _marker: std::marker::PhantomData,
         })
     }
