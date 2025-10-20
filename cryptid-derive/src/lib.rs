@@ -1,7 +1,32 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Attribute, Meta, Ident};
+use syn::{parse_macro_input, Attribute, DeriveInput, Ident, LitStr, Meta};
+
+fn humanize_struct_name(name: &str) -> String {
+    let base = name.strip_suffix("Id").unwrap_or(name);
+    let mut result = String::with_capacity(base.len());
+    for (idx, ch) in base.chars().enumerate() {
+        if ch.is_uppercase() && idx != 0 {
+            result.push(' ');
+        }
+        result.push(ch.to_ascii_lowercase());
+    }
+    result
+}
+
+fn title_case(input: &str) -> String {
+    let mut chars = input.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => {
+            let mut result = String::new();
+            result.push(first.to_ascii_uppercase());
+            result.extend(chars);
+            result
+        }
+    }
+}
 
 #[proc_macro_derive(CryptidField, attributes(cryptid))]
 pub fn derive_cryptid_field(input: TokenStream) -> TokenStream {
@@ -13,7 +38,48 @@ pub fn derive_cryptid_field(input: TokenStream) -> TokenStream {
         .expect("CryptidField requires #[cryptid(prefix = \"...\")]");
     
     let marker_name = Ident::new(&format!("{}Marker", struct_name), Span::call_site());
+    let resource_name = humanize_struct_name(&struct_name.to_string());
+    let description = LitStr::new(
+        &format!(
+            "{} identifier.",
+            title_case(&resource_name)
+        ),
+        Span::call_site(),
+    );
+    let pattern = LitStr::new(
+        &format!(r#"^{}_[0-9A-Za-z]+$"#, prefix),
+        Span::call_site(),
+    );
+    let example = LitStr::new(
+        &format!("{}_1a2b3c4d5e", prefix),
+        Span::call_site(),
+    );
     
+    let schema_impl = if cfg!(feature = "utoipa") {
+        quote! {
+            impl ::utoipa::PartialSchema for #struct_name {
+                fn schema() -> ::utoipa::openapi::RefOr<::utoipa::openapi::schema::Schema> {
+                    ::utoipa::openapi::schema::ObjectBuilder::new()
+                        .schema_type(::utoipa::openapi::schema::Type::String)
+                        .title(Some(stringify!(#struct_name)))
+                        .description(Some(#description))
+                        .pattern(Some(#pattern))
+                        .example(Some(::serde_json::Value::String(#example.to_owned())))
+                        .build()
+                        .into()
+                }
+            }
+
+            impl ::utoipa::ToSchema for #struct_name {
+                fn name() -> std::borrow::Cow<'static, str> {
+                    std::borrow::Cow::Borrowed(stringify!(#struct_name))
+                }
+            }
+        }
+    } else {
+        quote! {}
+    };
+
     let expanded = quote! {
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
         pub struct #marker_name;
@@ -118,6 +184,8 @@ pub fn derive_cryptid_field(input: TokenStream) -> TokenStream {
                 Self(cryptid_rs::Field::from(id as u64))
             }
         }
+
+        #schema_impl
     };
 
     TokenStream::from(expanded)
