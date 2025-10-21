@@ -1,6 +1,6 @@
 [package]
 name = "cryptid-derive"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Ville Laurikari <ville@laurikari.net>"]
 edition = "2021"
 description = "Procedural macros for cryptid-rs"

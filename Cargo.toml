@@ -1,6 +1,6 @@
 [package]
 name = "cryptid-rs"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Ville Laurikari <ville@laurikari.net>"]
 edition = "2021"
 description = "A library to encrypt and decrypt integer IDs to URL safe strings"
@@ -32,7 +32,7 @@ sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-n
 uuid = "^1.18.1"
 
 # Optional derive macro support
-cryptid-derive = { path = "cryptid-derive", optional = true }
+cryptid-derive = { version = "0.2.0", path = "cryptid-derive", optional = true }
 
 [features]
 default = ["diesel"]
