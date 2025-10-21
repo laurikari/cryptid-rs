@@ -127,16 +127,6 @@ impl<T: TypeMarker> Field<T> {
         }
     }
 
-    /// Decodes a `Field<T>` value from an encoded string.
-    ///
-    /// This method decrypts and decodes a cryptid string back into a `Field<T>`.
-    pub fn from_str(encoded: &str) -> Result<Self, crate::codec::Error> {
-        let codec_name = T::name();
-        let codec = get_or_create_codec(codec_name);
-        let id = codec.decode(encoded)?;
-        Ok(Field::from(id))
-    }
-
     /// Encrypts the ID into a `Uuid` value.
     pub fn encode_uuid(self) -> Uuid {
         let codec_name = T::name();
@@ -176,11 +166,22 @@ impl<'de, T: TypeMarker> Deserialize<'de> for Field<T> {
         let text = String::deserialize(deserializer)?;
         let codec_name = T::name();
         let codec = get_or_create_codec(codec_name);
-        let id = codec.decode(&text).map_err(|e| Error::custom(e))?;
+        let id = codec.decode(&text).map_err(Error::custom)?;
         Ok(Field {
             id,
             _marker: std::marker::PhantomData,
         })
+    }
+}
+
+impl<T: TypeMarker> std::str::FromStr for Field<T> {
+    type Err = crate::codec::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let codec_name = T::name();
+        let codec = get_or_create_codec(codec_name);
+        let id = codec.decode(s)?;
+        Ok(Field::from(id))
     }
 }
 

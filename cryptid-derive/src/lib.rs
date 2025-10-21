@@ -30,7 +30,7 @@ pub fn derive_cryptid_field(input: TokenStream) -> TokenStream {
             }
 
             pub fn from_str(encoded: &str) -> Result<Self, cryptid_rs::Error> {
-                Ok(Self(cryptid_rs::Field::from_str(encoded)?))
+                Ok(Self(encoded.parse()?))
             }
 
             pub fn encode_uuid(self) -> uuid::Uuid {
