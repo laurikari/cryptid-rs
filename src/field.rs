@@ -227,7 +227,10 @@ impl<T: TypeMarker> Type<Postgres> for Field<T> {
 #[cfg(feature = "sqlx")]
 // Encode implementation for SQLx (for parameters)
 impl<'q, T: TypeMarker> sqlx::Encode<'q, Postgres> for Field<T> {
-    fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+    fn encode_by_ref(
+        &self,
+        buf: &mut sqlx::postgres::PgArgumentBuffer,
+    ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
         let id = self.id as i64;
         <i64 as sqlx::Encode<Postgres>>::encode_by_ref(&id, buf)
     }

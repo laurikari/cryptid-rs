@@ -97,7 +97,10 @@ pub fn derive_cryptid_field(input: TokenStream) -> TokenStream {
 
         #[cfg(feature = "sqlx")]
         impl<'q> sqlx::Encode<'q, sqlx::Postgres> for #struct_name {
-            fn encode_by_ref(&self, buf: &mut sqlx::postgres::PgArgumentBuffer) -> sqlx::encode::IsNull {
+            fn encode_by_ref(
+                &self,
+                buf: &mut sqlx::postgres::PgArgumentBuffer,
+            ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
                 self.0.encode_by_ref(buf)
             }
         }
