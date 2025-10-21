@@ -1,7 +1,6 @@
 use std::fmt;
 
 use aes::Aes256;
-use base62;
 use fpe::ff1::{BinaryNumeralString, FF1};
 use hkdf::Hkdf;
 use hmac::{Hmac, Mac};
@@ -43,10 +42,10 @@ impl fmt::Display for Error {
                 write!(f, "Invalid data length")
             }
             Error::SentinelMismatch { received, expected } => {
-                write!(f, "Sentinel byte was {}, expected {}", received, expected)
+                write!(f, "Sentinel byte was {received}, expected {expected}")
             }
             Error::InvalidPrefix { received, expected } => {
-                write!(f, "Prefix was {}, expected {}", received, expected)
+                write!(f, "Prefix was {received}, expected {expected}")
             }
         }
     }
@@ -104,15 +103,15 @@ impl Codec {
         let hkdf = Hkdf::<Sha256>::new(None, &config.key);
         let mut ff1_key = [0u8; 32];
         let mut hmac_key = [0u8; 32];
-        hkdf.expand(format!("{}/ff1", name).as_bytes(), &mut ff1_key)
+        hkdf.expand(format!("{name}/ff1").as_bytes(), &mut ff1_key)
             .expect("Length 32 should be valid");
-        hkdf.expand(format!("{}/hmac", name).as_bytes(), &mut hmac_key)
+        hkdf.expand(format!("{name}/hmac").as_bytes(), &mut hmac_key)
             .expect("Length 32 should be valid");
         Codec {
             ff1: FF1::<Aes256>::new(&ff1_key, 2).expect("Radix 2 should be valid"),
             hmac: HmacSha256::new_from_slice(&hmac_key).expect("Key length 32 should be valid"),
             hmac_length: config.hmac_length as usize,
-            prefix: format!("{}_", name),
+            prefix: format!("{name}_"),
             zero_pad_length: config.zero_pad_length as usize,
         }
     }
@@ -323,7 +322,7 @@ fn decrypt_number(
 
     // Verify MAC
     let mut hmac_clone: HmacSha256 = hmac.clone();
-    hmac_clone.update(&encrypted_num);
+    hmac_clone.update(encrypted_num);
     let truncated_mac = &hmac_clone.finalize().into_bytes()[..hmac_length];
     if truncated_mac != received_mac {
         return Err(Error::IncorrectMAC);

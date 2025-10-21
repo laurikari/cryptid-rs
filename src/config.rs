@@ -6,7 +6,8 @@ use crate::field::clear_codec_cache;
 static GLOBAL_CONFIG: Lazy<Mutex<Option<Config>>> = Lazy::new(|| Mutex::new(None));
 
 thread_local! {
-    static THREAD_LOCAL_CONFIG: std::cell::RefCell<Option<Config>> = std::cell::RefCell::new(None);
+    static THREAD_LOCAL_CONFIG: std::cell::RefCell<Option<Config>> =
+        const { std::cell::RefCell::new(None) };
 }
 
 /// Configuring the cryptid library.
