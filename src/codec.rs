@@ -342,7 +342,7 @@ fn decrypt_number(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::{distributions::Uniform, Rng};
+    use rand::Rng;
 
     #[test]
     fn test_defaults() {
@@ -385,11 +385,10 @@ mod tests {
     #[test]
     fn test_uuid_roundtrip() {
         let codec = Codec::new("test", &Config::new(b"Test key here"));
-        let mut rng = rand::thread_rng();
-        let range = Uniform::new(0u64, u64::MAX);
+        let mut rng = rand::rng();
 
         for _ in 0..1_000 {
-            let number = rng.sample(range);
+            let number: u64 = rng.random();
             let uuid = codec.encode_uuid(number);
             let decoded = codec.decode_uuid(uuid).expect("Decoding failed");
 
@@ -493,11 +492,10 @@ mod tests {
     #[test]
     fn test_random_roundtrips() {
         let codec = Codec::new("test", &Config::new(b"Test key here"));
-        let mut rng = rand::thread_rng();
-        let range = Uniform::new(0u64, u64::MAX);
+        let mut rng = rand::rng();
 
         for _ in 0..10_000 {
-            let number = rng.sample(range);
+            let number: u64 = rng.random();
             let encoded = codec.encode(number);
             let decoded = codec.decode(&encoded).expect("Decoding failed");
 
